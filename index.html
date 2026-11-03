@@ -129,6 +129,10 @@ const KAYITLAR = [
   { tarih: "2026-11-03", ders: "Matematik", konu: "Ardışık Sayılar",                   soru: 18, dogru: 13, yanlis: 0, bos: 5 },
   { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme",      soru: 18, dogru: 18, yanlis: 0, bos: 0 },
   { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme",      soru: 18, dogru: 13, yanlis: 2, bos: 3 },
+  // Matematik — 2. kitap
+  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. kitap", soru: 13, dogru: 9,  yanlis: 1, bos: 3 },
+  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. kitap", soru: 12, dogru: 10, yanlis: 1, bos: 1 },
+  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. kitap", soru: 12, dogru: 8,  yanlis: 0, bos: 4 },
   // Türkçe
   { tarih: "2026-11-02", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 18, yanlis: 2, bos: 0 },
   { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 19, yanlis: 1, bos: 0 },
@@ -241,7 +245,7 @@ function tablo(kayitlar, gunler) {
     h += `<tr class="day"><td>${trTarih(g.tarih)}</td><td>${g.test} test</td><td>${g.soru}</td><td>${g.dogru}</td><td>${g.yanlis}</td><td>${g.bos}</td><td>${fmt(g.net)}</td><td>${fmt(g.oran, 1)}</td></tr>`;
     for (const r of testler) {
       const sil = r.kaynak === "yerel" ? ` <button class="x" title="Sil" data-idx="${r.idx}">✕</button>` : "";
-      h += `<tr><td></td><td>${r.ders || "–"}${r.konu ? ` <span class="konu">· ${r.konu}</span>` : ""}${sil}</td><td>${r.soru}</td><td>${r.dogru}</td><td>${r.yanlis}</td><td>${r.bos}</td><td>${fmt(net(r))}</td><td>${fmt(100 * r.dogru / r.soru, 1)}</td></tr>`;
+      h += `<tr><td></td><td>${r.ders || "–"}${r.konu ? ` <span class="konu">· ${r.konu}${r.kitap ? ` (${r.kitap})` : ""}</span>` : ""}${sil}</td><td>${r.soru}</td><td>${r.dogru}</td><td>${r.yanlis}</td><td>${r.bos}</td><td>${fmt(net(r))}</td><td>${fmt(100 * r.dogru / r.soru, 1)}</td></tr>`;
     }
   }
   t.innerHTML = h;
