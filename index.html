@@ -57,6 +57,12 @@
   .err { color: var(--yanlis); font-size: .85rem; margin-top: 8px; }
   h2.bolum { font-size: 1.35rem; margin: 32px 0 4px; }
   td.not { color: var(--muted); font-size: .82rem; white-space: normal; text-align: left; }
+  #giris { min-height: 100vh; display: grid; place-items: center; padding: 16px; }
+  #girisForm { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px;
+               width: 100%; max-width: 340px; display: grid; grid-template-columns: 1fr; gap: 12px; }
+  #girisForm .sub { margin: 0; }
+  label.hatirla { display: flex; gap: 8px; align-items: center; font-size: .85rem; }
+  label.hatirla input { width: auto; }
   .konu { color: var(--muted); }
   tr.ders td { font-weight: 650; background: color-mix(in srgb, var(--accent) 7%, transparent); }
   td.ind { padding-left: 22px; }
@@ -64,7 +70,17 @@
 </style>
 </head>
 <body>
-<main>
+<div id="giris">
+  <form id="girisForm">
+    <h1>Soru Takibi</h1>
+    <p class="sub">Devam etmek için parolayı gir.</p>
+    <input type="password" id="parola" placeholder="Parola" autocomplete="current-password" required autofocus>
+    <label class="hatirla"><input type="checkbox" id="hatirla"> Bu cihazda hatırla</label>
+    <button type="submit">Giriş</button>
+    <div class="err" id="girisHata"></div>
+  </form>
+</div>
+<main hidden>
   <h1>Soru Takibi</h1>
   <p class="sub">Günlük çözülen testler, doğru / yanlış / boş dağılımı ve net gelişimi.</p>
 
@@ -133,44 +149,10 @@
 
 <script>
 /* ================== VERİLER ==================
-   Her satır bir testtir. Aynı gün birden çok test olabilir.
-   tarih: "YYYY-AA-GG", soru: testteki soru sayısı,
-   dogru / yanlis / bos: sonuçlar (dogru + yanlis + bos = soru)
+   Veriler parolayla şifrelidir (AES-GCM, PBKDF2). Güncellemek için: araclar/veri.mjs
    ============================================== */
-const KAYITLAR = [
-  // Matematik
-  { tarih: "2026-11-02", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "1. Kitap",      soru: 18, dogru: 12, yanlis: 5, bos: 1 },
-  { tarih: "2026-11-02", ders: "Matematik", konu: "Negatif ve Pozitif Sayılar", kitap: "1. Kitap",        soru: 18, dogru: 16, yanlis: 1, bos: 1 },
-  { tarih: "2026-11-02", ders: "Matematik", konu: "Tek ve Çift Sayılar", kitap: "1. Kitap",               soru: 18, dogru: 16, yanlis: 2, bos: 0 },
-  { tarih: "2026-11-03", ders: "Matematik", konu: "Ardışık Sayılar", kitap: "1. Kitap",                   soru: 18, dogru: 13, yanlis: 0, bos: 5 },
-  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme", kitap: "1. Kitap",      soru: 18, dogru: 18, yanlis: 0, bos: 0 },
-  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme", kitap: "1. Kitap",      soru: 18, dogru: 13, yanlis: 2, bos: 3 },
-  // Matematik — 2. Kitap
-  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. Kitap", soru: 13, dogru: 9,  yanlis: 1, bos: 3 },
-  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. Kitap", soru: 12, dogru: 10, yanlis: 1, bos: 1 },
-  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. Kitap", soru: 12, dogru: 8,  yanlis: 0, bos: 4 },
-  // Türkçe
-  { tarih: "2026-11-02", ders: "Türkçe",    konu: "Sözcükte Anlam", kitap: "1. Kitap",                    soru: 20, dogru: 18, yanlis: 2, bos: 0 },
-  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam", kitap: "1. Kitap",                    soru: 20, dogru: 19, yanlis: 1, bos: 0 },
-  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam", kitap: "1. Kitap",                    soru: 20, dogru: 18, yanlis: 1, bos: 1 },
-];
-
-/* Kitaplar: tablolarda kısa ad görünür, tam ad açıklamada */
-const KITAPLAR = {
-  "1. Kitap": "ALES Soru Bankası (Türkçe + Matematik)",
-  "2. Kitap": "ALES Sayısal Yetenek Matematik Soru Bankası",
-};
-
-/* ================== DENEMELER ==================
-   Her deneme ayrı; bölümler ders ders yazılır. */
-const DENEMELER = [
-  { ad: "Deneme 1", tarih: "2026-10-18", not: "Türkçe: süre yetmedi",
-    bolumler: {
-      "Matematik": { soru: 50, dogru: 34, yanlis: 5, bos: 11 },
-      "Türkçe":    { soru: 50, dogru: 0,  yanlis: 0, bos: 50 },
-    } },
-];
-/* ============================================== */
+const SIFRELI_VERI = /*VERI*/{"iter":310000,"salt":"JybCQGfiZvcsjOw7+0HMww==","iv":"4WfKvCOuyqLKTQFo","veri":"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"}/*VERI*/;
+let KAYITLAR = [], KITAPLAR = {}, DENEMELER = [];
 
 /* Net hesabı: kaç yanlış bir doğruyu götürür (YKS/LGS için 4, KPSS için 4, 0 = ceza yok) */
 const YANLIS_GOTURUR = 4;
@@ -374,7 +356,35 @@ document.getElementById("kopyala").onclick = async () => {
 };
 matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ciz);
 
-ciz();
+/* ---------- Giriş ve şifre çözme ---------- */
+const PAROLA_KEY = "soru-takibi-parola";
+const ub64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+async function coz(parola) {
+  const v = SIFRELI_VERI, enc = new TextEncoder();
+  const k = await crypto.subtle.importKey("raw", enc.encode(parola), "PBKDF2", false, ["deriveKey"]);
+  const key = await crypto.subtle.deriveKey({ name: "PBKDF2", salt: ub64(v.salt), iterations: v.iter, hash: "SHA-256" },
+    k, { name: "AES-GCM", length: 256 }, false, ["decrypt"]);
+  const acik = await crypto.subtle.decrypt({ name: "AES-GCM", iv: ub64(v.iv) }, key, ub64(v.veri));
+  return JSON.parse(new TextDecoder().decode(acik));
+}
+async function ac(parola, hatirla) {
+  const d = await coz(parola); // yanlış parolada hata fırlatır
+  KAYITLAR = d.KAYITLAR || []; KITAPLAR = d.KITAPLAR || {}; DENEMELER = d.DENEMELER || [];
+  if (hatirla) try { localStorage.setItem(PAROLA_KEY, parola); } catch {}
+  document.getElementById("giris").remove();
+  document.querySelector("main").hidden = false;
+  ciz();
+}
+document.getElementById("girisForm").onsubmit = async e => {
+  e.preventDefault();
+  const h = document.getElementById("girisHata"); h.textContent = "Açılıyor…";
+  try { await ac(document.getElementById("parola").value, document.getElementById("hatirla").checked); }
+  catch { h.textContent = "Parola yanlış."; }
+};
+(async () => {
+  let kayitli = null; try { kayitli = localStorage.getItem(PAROLA_KEY); } catch {}
+  if (kayitli) try { await ac(kayitli, false); } catch { try { localStorage.removeItem(PAROLA_KEY); } catch {} }
+})();
 </script>
 </body>
 </html>
