@@ -55,6 +55,9 @@
   .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .note { color: var(--muted); font-size: .82rem; margin: 10px 0 0; }
   .err { color: var(--yanlis); font-size: .85rem; margin-top: 8px; }
+  .konu { color: var(--muted); }
+  tr.ders td { font-weight: 650; background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  td.ind { padding-left: 22px; }
   .x { background: none; border: none; color: var(--muted); padding: 0 4px; cursor: pointer; }
 </style>
 </head>
@@ -82,6 +85,12 @@
   </div>
 
   <div class="card">
+    <h2>Ders ve konu bazında</h2>
+    <div class="scroll"><table id="konular"></table></div>
+    <p class="note">Konular doğruluk oranına göre sıralı: en zayıf konu her dersin en üstünde.</p>
+  </div>
+
+  <div class="card">
     <h2>Kayıtlar</h2>
     <div class="scroll"><table id="tablo"></table></div>
   </div>
@@ -90,7 +99,8 @@
     <h2>Hızlı ekle (bu tarayıcıda)</h2>
     <form id="form">
       <label>Tarih <input type="date" name="tarih" required></label>
-      <label>Ders / Konu <input type="text" name="ders" placeholder="ör. Matematik"></label>
+      <label>Ders <input type="text" name="ders" placeholder="ör. Matematik"></label>
+      <label>Konu <input type="text" name="konu" placeholder="ör. Ardışık Sayılar"></label>
       <label>Soru sayısı <input type="number" name="soru" min="1" required></label>
       <label>Doğru <input type="number" name="dogru" min="0" required></label>
       <label>Yanlış <input type="number" name="yanlis" min="0" required></label>
@@ -112,7 +122,17 @@
    dogru / yanlis / bos: sonuçlar (dogru + yanlis + bos = soru)
    ============================================== */
 const KAYITLAR = [
-  // { tarih: "2026-11-03", ders: "Matematik", soru: 40, dogru: 30, yanlis: 6, bos: 4 },
+  // Matematik
+  { tarih: "2026-11-02", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar",      soru: 18, dogru: 12, yanlis: 5, bos: 1 },
+  { tarih: "2026-11-02", ders: "Matematik", konu: "Negatif ve Pozitif Sayılar",        soru: 18, dogru: 16, yanlis: 1, bos: 1 },
+  { tarih: "2026-11-02", ders: "Matematik", konu: "Tek ve Çift Sayılar",               soru: 18, dogru: 16, yanlis: 2, bos: 0 },
+  { tarih: "2026-11-03", ders: "Matematik", konu: "Ardışık Sayılar",                   soru: 18, dogru: 13, yanlis: 0, bos: 5 },
+  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme",      soru: 18, dogru: 18, yanlis: 0, bos: 0 },
+  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme",      soru: 18, dogru: 13, yanlis: 2, bos: 3 },
+  // Türkçe
+  { tarih: "2026-11-02", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 18, yanlis: 2, bos: 0 },
+  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 19, yanlis: 1, bos: 0 },
+  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 18, yanlis: 1, bos: 1 },
 ];
 
 /* Net hesabı: kaç yanlış bir doğruyu götürür (YKS/LGS için 4, KPSS için 4, 0 = ceza yok) */
@@ -221,7 +241,7 @@ function tablo(kayitlar, gunler) {
     h += `<tr class="day"><td>${trTarih(g.tarih)}</td><td>${g.test} test</td><td>${g.soru}</td><td>${g.dogru}</td><td>${g.yanlis}</td><td>${g.bos}</td><td>${fmt(g.net)}</td><td>${fmt(g.oran, 1)}</td></tr>`;
     for (const r of testler) {
       const sil = r.kaynak === "yerel" ? ` <button class="x" title="Sil" data-idx="${r.idx}">✕</button>` : "";
-      h += `<tr><td></td><td>${r.ders || "–"}${sil}</td><td>${r.soru}</td><td>${r.dogru}</td><td>${r.yanlis}</td><td>${r.bos}</td><td>${fmt(net(r))}</td><td>${fmt(100 * r.dogru / r.soru, 1)}</td></tr>`;
+      h += `<tr><td></td><td>${r.ders || "–"}${r.konu ? ` <span class="konu">· ${r.konu}</span>` : ""}${sil}</td><td>${r.soru}</td><td>${r.dogru}</td><td>${r.yanlis}</td><td>${r.bos}</td><td>${fmt(net(r))}</td><td>${fmt(100 * r.dogru / r.soru, 1)}</td></tr>`;
     }
   }
   t.innerHTML = h;
@@ -230,12 +250,30 @@ function tablo(kayitlar, gunler) {
   });
 }
 
+function konuTablosu(kayitlar) {
+  const t = document.getElementById("konular");
+  if (!kayitlar.length) { t.innerHTML = `<tr><td class="empty">Henüz kayıt yok.</td></tr>`; return; }
+  const topla = arr => arr.reduce((g, r) => ({ test: g.test + 1, soru: g.soru + r.soru, dogru: g.dogru + r.dogru,
+    yanlis: g.yanlis + r.yanlis, bos: g.bos + r.bos, net: g.net + net(r) }), { test: 0, soru: 0, dogru: 0, yanlis: 0, bos: 0, net: 0 });
+  const satir = (ad, g, cls) => `<tr class="${cls}"><td class="${cls === "ders" ? "" : "ind"}">${ad}</td><td>${g.test}</td><td>${g.soru}</td><td>${g.dogru}</td><td>${g.yanlis}</td><td>${g.bos}</td><td>${fmt(g.net)}</td><td>${fmt(100 * g.dogru / g.soru, 1)}</td></tr>`;
+  const grupla = (arr, k) => arr.reduce((m, r) => { const a = r[k] || "–"; (m[a] = m[a] || []).push(r); return m; }, {});
+  let h = `<tr><th>Ders / Konu</th><th>Test</th><th>Soru</th><th>D</th><th>Y</th><th>B</th><th>Net</th><th>%</th></tr>`;
+  for (const [ders, dk] of Object.entries(grupla(kayitlar, "ders"))) {
+    h += satir(ders, topla(dk), "ders");
+    Object.entries(grupla(dk, "konu")).map(([k, a]) => [k, topla(a)])
+      .sort((a, b) => a[1].dogru / a[1].soru - b[1].dogru / b[1].soru)
+      .forEach(([k, g]) => h += satir(k, g, ""));
+  }
+  t.innerHTML = h;
+}
+
 function ciz() {
   const kayitlar = tumKayitlar();
   const gunler = gunlukTopla(kayitlar);
   istatistik(gunler);
   grafik(gunler);
   tablo(kayitlar, gunler);
+  konuTablosu(kayitlar);
 }
 
 const form = document.getElementById("form");
@@ -247,7 +285,7 @@ form.onsubmit = e => {
   const bos = form.bos.value === "" ? soru - dogru - yanlis : +form.bos.value;
   if (bos < 0 || dogru + yanlis + bos !== soru) { err.textContent = "Doğru + yanlış + boş, soru sayısına eşit olmalı."; return; }
   const v = yerelOku();
-  v.push({ tarih: form.tarih.value, ders: form.ders.value.trim(), soru, dogru, yanlis, bos });
+  v.push({ tarih: form.tarih.value, ders: form.ders.value.trim(), konu: form.konu.value.trim(), soru, dogru, yanlis, bos });
   yerelYaz(v);
   ["soru", "dogru", "yanlis", "bos"].forEach(k => form[k].value = "");
   ciz();
