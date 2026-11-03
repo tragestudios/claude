@@ -55,6 +55,8 @@
   .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
   .note { color: var(--muted); font-size: .82rem; margin: 10px 0 0; }
   .err { color: var(--yanlis); font-size: .85rem; margin-top: 8px; }
+  h2.bolum { font-size: 1.35rem; margin: 32px 0 4px; }
+  td.not { color: var(--muted); font-size: .82rem; white-space: normal; text-align: left; }
   .konu { color: var(--muted); }
   tr.ders td { font-weight: 650; background: color-mix(in srgb, var(--accent) 7%, transparent); }
   td.ind { padding-left: 22px; }
@@ -94,6 +96,18 @@
     <h2>Kayıtlar</h2>
     <div class="scroll"><table id="tablo"></table></div>
     <p class="note" id="kitaplar"></p>
+  </div>
+
+  <h2 class="bolum">Denemeler</h2>
+  <p class="sub">Denemeler günlük test istatistiklerine katılmaz, ayrı takip edilir.</p>
+  <div class="stats" id="dStats"></div>
+  <div class="card">
+    <h2>Deneme netleri</h2>
+    <div class="chart-box"><canvas id="cDeneme"></canvas></div>
+  </div>
+  <div class="card">
+    <h2>Deneme sonuçları</h2>
+    <div class="scroll"><table id="dTablo"></table></div>
   </div>
 
   <div class="card">
@@ -146,6 +160,17 @@ const KITAPLAR = {
   "1. Kitap": "ALES Soru Bankası (Türkçe + Matematik)",
   "2. Kitap": "ALES Sayısal Yetenek Matematik Soru Bankası",
 };
+
+/* ================== DENEMELER ==================
+   Her deneme ayrı; bölümler ders ders yazılır. */
+const DENEMELER = [
+  { ad: "Deneme 1", tarih: "2026-11-03", not: "Türkçe: süre yetmedi",
+    bolumler: {
+      "Matematik": { soru: 50, dogru: 34, yanlis: 5, bos: 11 },
+      "Türkçe":    { soru: 50, dogru: 0,  yanlis: 0, bos: 50 },
+    } },
+];
+/* ============================================== */
 
 /* Net hesabı: kaç yanlış bir doğruyu götürür (YKS/LGS için 4, KPSS için 4, 0 = ceza yok) */
 const YANLIS_GOTURUR = 4;
@@ -279,6 +304,44 @@ function konuTablosu(kayitlar) {
   t.innerHTML = h;
 }
 
+function denemeler() {
+  const liste = [...DENEMELER].sort((a, b) => a.tarih.localeCompare(b.tarih));
+  const dersler = [...new Set(liste.flatMap(d => Object.keys(d.bolumler)))];
+  const toplam = d => Object.values(d.bolumler).reduce((g, b) => ({ soru: g.soru + b.soru, dogru: g.dogru + b.dogru,
+    yanlis: g.yanlis + b.yanlis, bos: g.bos + b.bos }), { soru: 0, dogru: 0, yanlis: 0, bos: 0 });
+  const st = document.getElementById("dStats");
+  if (!liste.length) { st.innerHTML = ""; document.getElementById("dTablo").innerHTML = `<tr><td class="empty">Henüz deneme yok.</td></tr>`; return; }
+
+  const kart = (k, v, d = "") => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${d}</div>`;
+  const son = liste[liste.length - 1], onceki = liste[liste.length - 2];
+  const fark = (a, b) => { const x = a - b; return `<div class="d ${x >= 0 ? "up" : "down"}">${x >= 0 ? "▲" : "▼"} ${fmt(Math.abs(x))} önceki denemeye göre</div>`; };
+  st.innerHTML = kart("Çözülen deneme", liste.length) +
+    kart("Son deneme toplam net", fmt(net(toplam(son))), onceki ? fark(net(toplam(son)), net(toplam(onceki))) : "") +
+    dersler.map(d => son.bolumler[d] ? kart(`Son ${d} neti`, fmt(net(son.bolumler[d])),
+      onceki && onceki.bolumler[d] ? fark(net(son.bolumler[d]), net(onceki.bolumler[d])) : "") : "").join("") +
+    kart("En iyi toplam net", fmt(Math.max(...liste.map(d => net(toplam(d))))));
+
+  const renk = ["--net", "--dogru", "--yanlis", "--bos"];
+  grafikler.push(new Chart(document.getElementById("cDeneme"), {
+    data: { labels: liste.map(d => `${d.ad} (${trTarih(d.tarih)})`), datasets: [
+      ...dersler.map((d, i) => ({ type: "bar", label: d, data: liste.map(x => x.bolumler[d] ? +net(x.bolumler[d]).toFixed(2) : null),
+        backgroundColor: css(renk[i % renk.length]), maxBarThickness: 60 })),
+      { type: "line", label: "Toplam net", data: liste.map(x => +net(toplam(x)).toFixed(2)), borderColor: css("--text"), backgroundColor: css("--text"), pointRadius: 4, tension: .25 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+  }));
+
+  const satir = (a, b, x, cls = "") => `<tr class="${cls}"><td>${a}</td><td>${b}</td><td>${x.soru}</td><td>${x.dogru}</td><td>${x.yanlis}</td><td>${x.bos}</td><td>${fmt(net(x))}</td><td>${fmt(100 * x.dogru / x.soru, 1)}</td></tr>`;
+  let h = `<tr><th>Deneme</th><th>Bölüm</th><th>Soru</th><th>D</th><th>Y</th><th>B</th><th>Net</th><th>%</th></tr>`;
+  for (const d of [...liste].reverse()) {
+    h += satir(`${d.ad} · ${trTarih(d.tarih)}`, "Toplam", toplam(d), "day");
+    for (const [b, x] of Object.entries(d.bolumler)) h += satir("", b, x);
+    if (d.not) h += `<tr><td></td><td class="not" colspan="7">Not: ${d.not}</td></tr>`;
+  }
+  document.getElementById("dTablo").innerHTML = h;
+}
+
 function ciz() {
   const kayitlar = tumKayitlar();
   const gunler = gunlukTopla(kayitlar);
@@ -286,6 +349,7 @@ function ciz() {
   grafik(gunler);
   tablo(kayitlar, gunler);
   konuTablosu(kayitlar);
+  denemeler();
   document.getElementById("kitaplar").innerHTML = Object.entries(KITAPLAR).map(([k, v]) => `<b>${k}:</b> ${v}`).join(" &nbsp;·&nbsp; ");
 }
 
