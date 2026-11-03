@@ -93,6 +93,7 @@
   <div class="card">
     <h2>Kayıtlar</h2>
     <div class="scroll"><table id="tablo"></table></div>
+    <p class="note" id="kitaplar"></p>
   </div>
 
   <div class="card">
@@ -101,6 +102,7 @@
       <label>Tarih <input type="date" name="tarih" required></label>
       <label>Ders <input type="text" name="ders" placeholder="ör. Matematik"></label>
       <label>Konu <input type="text" name="konu" placeholder="ör. Ardışık Sayılar"></label>
+      <label>Kitap <input type="text" name="kitap" placeholder="ör. 1. Kitap"></label>
       <label>Soru sayısı <input type="number" name="soru" min="1" required></label>
       <label>Doğru <input type="number" name="dogru" min="0" required></label>
       <label>Yanlış <input type="number" name="yanlis" min="0" required></label>
@@ -123,21 +125,27 @@
    ============================================== */
 const KAYITLAR = [
   // Matematik
-  { tarih: "2026-11-02", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar",      soru: 18, dogru: 12, yanlis: 5, bos: 1 },
-  { tarih: "2026-11-02", ders: "Matematik", konu: "Negatif ve Pozitif Sayılar",        soru: 18, dogru: 16, yanlis: 1, bos: 1 },
-  { tarih: "2026-11-02", ders: "Matematik", konu: "Tek ve Çift Sayılar",               soru: 18, dogru: 16, yanlis: 2, bos: 0 },
-  { tarih: "2026-11-03", ders: "Matematik", konu: "Ardışık Sayılar",                   soru: 18, dogru: 13, yanlis: 0, bos: 5 },
-  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme",      soru: 18, dogru: 18, yanlis: 0, bos: 0 },
-  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme",      soru: 18, dogru: 13, yanlis: 2, bos: 3 },
-  // Matematik — 2. kitap
-  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. kitap", soru: 13, dogru: 9,  yanlis: 1, bos: 3 },
-  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. kitap", soru: 12, dogru: 10, yanlis: 1, bos: 1 },
-  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. kitap", soru: 12, dogru: 8,  yanlis: 0, bos: 4 },
+  { tarih: "2026-11-02", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "1. Kitap",      soru: 18, dogru: 12, yanlis: 5, bos: 1 },
+  { tarih: "2026-11-02", ders: "Matematik", konu: "Negatif ve Pozitif Sayılar", kitap: "1. Kitap",        soru: 18, dogru: 16, yanlis: 1, bos: 1 },
+  { tarih: "2026-11-02", ders: "Matematik", konu: "Tek ve Çift Sayılar", kitap: "1. Kitap",               soru: 18, dogru: 16, yanlis: 2, bos: 0 },
+  { tarih: "2026-11-03", ders: "Matematik", konu: "Ardışık Sayılar", kitap: "1. Kitap",                   soru: 18, dogru: 13, yanlis: 0, bos: 5 },
+  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme", kitap: "1. Kitap",      soru: 18, dogru: 18, yanlis: 0, bos: 0 },
+  { tarih: "2026-11-03", ders: "Matematik", konu: "Basamak Analizi ve Çözümleme", kitap: "1. Kitap",      soru: 18, dogru: 13, yanlis: 2, bos: 3 },
+  // Matematik — 2. Kitap
+  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. Kitap", soru: 13, dogru: 9,  yanlis: 1, bos: 3 },
+  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. Kitap", soru: 12, dogru: 10, yanlis: 1, bos: 1 },
+  { tarih: "2026-11-01", ders: "Matematik", konu: "Doğal Sayılar ve Tam Sayılar", kitap: "2. Kitap", soru: 12, dogru: 8,  yanlis: 0, bos: 4 },
   // Türkçe
-  { tarih: "2026-11-02", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 18, yanlis: 2, bos: 0 },
-  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 19, yanlis: 1, bos: 0 },
-  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam",                    soru: 20, dogru: 18, yanlis: 1, bos: 1 },
+  { tarih: "2026-11-02", ders: "Türkçe",    konu: "Sözcükte Anlam", kitap: "1. Kitap",                    soru: 20, dogru: 18, yanlis: 2, bos: 0 },
+  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam", kitap: "1. Kitap",                    soru: 20, dogru: 19, yanlis: 1, bos: 0 },
+  { tarih: "2026-11-03", ders: "Türkçe",    konu: "Sözcükte Anlam", kitap: "1. Kitap",                    soru: 20, dogru: 18, yanlis: 1, bos: 1 },
 ];
+
+/* Kitaplar: tablolarda kısa ad görünür, tam ad açıklamada */
+const KITAPLAR = {
+  "1. Kitap": "ALES Soru Bankası (Türkçe + Matematik)",
+  "2. Kitap": "ALES Sayısal Yetenek Matematik Soru Bankası",
+};
 
 /* Net hesabı: kaç yanlış bir doğruyu götürür (YKS/LGS için 4, KPSS için 4, 0 = ceza yok) */
 const YANLIS_GOTURUR = 4;
@@ -245,7 +253,7 @@ function tablo(kayitlar, gunler) {
     h += `<tr class="day"><td>${trTarih(g.tarih)}</td><td>${g.test} test</td><td>${g.soru}</td><td>${g.dogru}</td><td>${g.yanlis}</td><td>${g.bos}</td><td>${fmt(g.net)}</td><td>${fmt(g.oran, 1)}</td></tr>`;
     for (const r of testler) {
       const sil = r.kaynak === "yerel" ? ` <button class="x" title="Sil" data-idx="${r.idx}">✕</button>` : "";
-      h += `<tr><td></td><td>${r.ders || "–"}${r.konu ? ` <span class="konu">· ${r.konu}${r.kitap ? ` (${r.kitap})` : ""}</span>` : ""}${sil}</td><td>${r.soru}</td><td>${r.dogru}</td><td>${r.yanlis}</td><td>${r.bos}</td><td>${fmt(net(r))}</td><td>${fmt(100 * r.dogru / r.soru, 1)}</td></tr>`;
+      h += `<tr><td></td><td>${r.ders || "–"}${r.konu ? ` <span class="konu">· ${r.konu}${r.kitap ? ` <span title="${KITAPLAR[r.kitap] || ""}">(${r.kitap})</span>` : ""}</span>` : ""}${sil}</td><td>${r.soru}</td><td>${r.dogru}</td><td>${r.yanlis}</td><td>${r.bos}</td><td>${fmt(net(r))}</td><td>${fmt(100 * r.dogru / r.soru, 1)}</td></tr>`;
     }
   }
   t.innerHTML = h;
@@ -278,6 +286,7 @@ function ciz() {
   grafik(gunler);
   tablo(kayitlar, gunler);
   konuTablosu(kayitlar);
+  document.getElementById("kitaplar").innerHTML = Object.entries(KITAPLAR).map(([k, v]) => `<b>${k}:</b> ${v}`).join(" &nbsp;·&nbsp; ");
 }
 
 const form = document.getElementById("form");
@@ -289,7 +298,7 @@ form.onsubmit = e => {
   const bos = form.bos.value === "" ? soru - dogru - yanlis : +form.bos.value;
   if (bos < 0 || dogru + yanlis + bos !== soru) { err.textContent = "Doğru + yanlış + boş, soru sayısına eşit olmalı."; return; }
   const v = yerelOku();
-  v.push({ tarih: form.tarih.value, ders: form.ders.value.trim(), konu: form.konu.value.trim(), soru, dogru, yanlis, bos });
+  v.push({ tarih: form.tarih.value, ders: form.ders.value.trim(), konu: form.konu.value.trim(), kitap: form.kitap.value.trim(), soru, dogru, yanlis, bos });
   yerelYaz(v);
   ["soru", "dogru", "yanlis", "bos"].forEach(k => form[k].value = "");
   ciz();
