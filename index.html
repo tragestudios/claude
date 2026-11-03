@@ -1,0 +1,265 @@
+<!doctype html>
+<html lang="tr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Soru Takibi</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7280; --line: #e3e6eb;
+    --dogru: #1f9d55; --yanlis: #d64545; --bos: #9aa3af; --net: #3b6fd8; --accent: #3b6fd8;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #12151b; --card: #1b2029; --text: #e7eaf0; --muted: #9aa3b2; --line: #2b313c;
+      --dogru: #3fbf75; --yanlis: #ef6b6b; --bos: #7b8494; --net: #6f97ee; --accent: #6f97ee;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #12151b; --card: #1b2029; --text: #e7eaf0; --muted: #9aa3b2; --line: #2b313c;
+    --dogru: #3fbf75; --yanlis: #ef6b6b; --bos: #7b8494; --net: #6f97ee; --accent: #6f97ee;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+  main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
+  h1 { font-size: 1.6rem; margin: 0 0 4px; }
+  h2 { font-size: 1.05rem; margin: 0 0 12px; }
+  .sub { color: var(--muted); margin: 0 0 20px; }
+  .card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .stat { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px; }
+  .stat .k { color: var(--muted); font-size: .8rem; }
+  .stat .v { font-size: 1.5rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+  .stat .v.sm { font-size: 1.15rem; padding-top: .3rem; }
+  .stat .d { font-size: .8rem; color: var(--muted); }
+  .up { color: var(--dogru) !important; } .down { color: var(--yanlis) !important; }
+  .chart-box { position: relative; height: 280px; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 760px) { .grid2 { grid-template-columns: 1fr; } }
+  table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; font-size: .9rem; }
+  th, td { text-align: right; padding: 7px 8px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+  th:first-child, td:first-child, th:nth-child(2), td:nth-child(2) { text-align: left; }
+  th { color: var(--muted); font-weight: 600; font-size: .8rem; }
+  tr.day td { font-weight: 650; background: color-mix(in srgb, var(--accent) 7%, transparent); }
+  .scroll { overflow-x: auto; }
+  .empty { color: var(--muted); text-align: center; padding: 28px 8px; }
+  form { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; align-items: end; }
+  label { font-size: .8rem; color: var(--muted); display: grid; gap: 4px; }
+  input { font: inherit; padding: 7px 9px; border-radius: 8px; border: 1px solid var(--line);
+          background: var(--bg); color: var(--text); width: 100%; }
+  button { font: inherit; padding: 8px 12px; border-radius: 8px; border: 1px solid var(--accent);
+           background: var(--accent); color: #fff; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .note { color: var(--muted); font-size: .82rem; margin: 10px 0 0; }
+  .err { color: var(--yanlis); font-size: .85rem; margin-top: 8px; }
+  .x { background: none; border: none; color: var(--muted); padding: 0 4px; cursor: pointer; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Soru Takibi</h1>
+  <p class="sub">Günlük çözülen testler, doğru / yanlış / boş dağılımı ve net gelişimi.</p>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="card">
+    <h2>Günlük çözülen soru</h2>
+    <div class="chart-box"><canvas id="cSoru"></canvas></div>
+  </div>
+
+  <div class="grid2">
+    <div class="card">
+      <h2>Doğruluk oranı (%)</h2>
+      <div class="chart-box"><canvas id="cOran"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Günlük net</h2>
+      <div class="chart-box"><canvas id="cNet"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>Kayıtlar</h2>
+    <div class="scroll"><table id="tablo"></table></div>
+  </div>
+
+  <div class="card">
+    <h2>Hızlı ekle (bu tarayıcıda)</h2>
+    <form id="form">
+      <label>Tarih <input type="date" name="tarih" required></label>
+      <label>Ders / Konu <input type="text" name="ders" placeholder="ör. Matematik"></label>
+      <label>Soru sayısı <input type="number" name="soru" min="1" required></label>
+      <label>Doğru <input type="number" name="dogru" min="0" required></label>
+      <label>Yanlış <input type="number" name="yanlis" min="0" required></label>
+      <label>Boş <input type="number" name="bos" min="0" placeholder="otomatik"></label>
+      <button type="submit">Ekle</button>
+    </form>
+    <div class="err" id="err"></div>
+    <div class="row">
+      <button class="ghost" id="kopyala" type="button">Tüm veriyi kopyala (JSON)</button>
+    </div>
+    <p class="note">Asıl kayıtlar dosyadaki <code>KAYITLAR</code> listesinde tutulur. Buradan eklediklerin yalnızca bu tarayıcıda saklanır; kalıcı olması için JSON'u kopyalayıp Claude'a gönder.</p>
+  </div>
+</main>
+
+<script>
+/* ================== VERİLER ==================
+   Her satır bir testtir. Aynı gün birden çok test olabilir.
+   tarih: "YYYY-AA-GG", soru: testteki soru sayısı,
+   dogru / yanlis / bos: sonuçlar (dogru + yanlis + bos = soru)
+   ============================================== */
+const KAYITLAR = [
+  // { tarih: "2026-11-03", ders: "Matematik", soru: 40, dogru: 30, yanlis: 6, bos: 4 },
+];
+
+/* Net hesabı: kaç yanlış bir doğruyu götürür (YKS/LGS için 4, KPSS için 4, 0 = ceza yok) */
+const YANLIS_GOTURUR = 4;
+/* ============================================== */
+
+const LS_KEY = "soru-takibi-yerel";
+function yerelOku() { try { return JSON.parse(localStorage.getItem(LS_KEY)) || []; } catch { return []; } }
+function yerelYaz(v) { try { localStorage.setItem(LS_KEY, JSON.stringify(v)); } catch {} }
+
+const net = r => YANLIS_GOTURUR ? r.dogru - r.yanlis / YANLIS_GOTURUR : r.dogru;
+const fmt = (n, d = 2) => Number.isInteger(n) ? String(n) : n.toFixed(d).replace(/\.?0+$/, "");
+const trTarih = t => new Date(t + "T00:00:00").toLocaleDateString("tr-TR", { day: "2-digit", month: "short" });
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+let grafikler = [];
+
+function tumKayitlar() {
+  return [...KAYITLAR.map(r => ({ ...r, kaynak: "dosya" })),
+          ...yerelOku().map((r, i) => ({ ...r, kaynak: "yerel", idx: i }))]
+    .sort((a, b) => a.tarih.localeCompare(b.tarih));
+}
+
+function gunlukTopla(kayitlar) {
+  const m = new Map();
+  for (const r of kayitlar) {
+    const g = m.get(r.tarih) || { tarih: r.tarih, test: 0, soru: 0, dogru: 0, yanlis: 0, bos: 0, net: 0 };
+    g.test++; g.soru += r.soru; g.dogru += r.dogru; g.yanlis += r.yanlis; g.bos += r.bos; g.net += net(r);
+    m.set(r.tarih, g);
+  }
+  return [...m.values()].map(g => ({ ...g, oran: g.soru ? 100 * g.dogru / g.soru : 0 }));
+}
+
+function ort(arr, f) { return arr.length ? arr.reduce((s, x) => s + f(x), 0) / arr.length : 0; }
+
+function istatistik(gunler) {
+  const el = document.getElementById("stats");
+  const top = k => gunler.reduce((s, g) => s + g[k], 0);
+  const soru = top("soru"), dogru = top("dogru");
+  // İlerleme: son 7 gün ile önceki 7 kayıtlı günün doğruluk ortalaması
+  const son = gunler.slice(-7), once = gunler.slice(-14, -7);
+  let fark = "";
+  if (once.length) {
+    const d = ort(son, g => g.oran) - ort(once, g => g.oran);
+    fark = `<div class="d ${d >= 0 ? "up" : "down"}">${d >= 0 ? "▲" : "▼"} ${fmt(Math.abs(d), 1)} puan (son 7 gün vs önceki)</div>`;
+  }
+  const kart = (k, v, d = "", cls = "") => `<div class="stat"><div class="k">${k}</div><div class="v ${cls}">${v}</div>${d}</div>`;
+  el.innerHTML =
+    kart("Toplam soru", soru) +
+    kart("Toplam test", top("test")) +
+    kart("Doğru / Yanlış / Boş", `${dogru} / ${top("yanlis")} / ${top("bos")}`, "", "sm") +
+    kart("Genel doğruluk", soru ? "%" + fmt(100 * dogru / soru, 1) : "–", fark) +
+    kart("Toplam net", fmt(top("net"))) +
+    kart("Kayıtlı gün", gunler.length, gunler.length ? `<div class="d">günlük ort. ${fmt(soru / gunler.length, 1)} soru</div>` : "");
+}
+
+function grafik(gunler) {
+  grafikler.forEach(c => c.destroy()); grafikler = [];
+  Chart.defaults.color = css("--muted");
+  Chart.defaults.borderColor = css("--line");
+  Chart.defaults.font.family = getComputedStyle(document.body).fontFamily;
+  const etiket = gunler.map(g => trTarih(g.tarih));
+  const ortak = { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false } };
+
+  // 7 günlük hareketli ortalama (trend çizgisi)
+  const hareketli = (arr, n = 7) => arr.map((_, i) => { const s = arr.slice(Math.max(0, i - n + 1), i + 1); return s.reduce((a, b) => a + b, 0) / s.length; });
+
+  grafikler.push(new Chart(document.getElementById("cSoru"), {
+    type: "bar",
+    data: { labels: etiket, datasets: [
+      { label: "Doğru", data: gunler.map(g => g.dogru), backgroundColor: css("--dogru"), stack: "s" },
+      { label: "Yanlış", data: gunler.map(g => g.yanlis), backgroundColor: css("--yanlis"), stack: "s" },
+      { label: "Boş", data: gunler.map(g => g.bos), backgroundColor: css("--bos"), stack: "s" },
+    ]},
+    options: { ...ortak, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true } } }
+  }));
+
+  grafikler.push(new Chart(document.getElementById("cOran"), {
+    type: "line",
+    data: { labels: etiket, datasets: [
+      { label: "Doğruluk %", data: gunler.map(g => +g.oran.toFixed(1)), borderColor: css("--dogru"), backgroundColor: css("--dogru"), tension: .25, pointRadius: 3 },
+      { label: "7 günlük ort.", data: hareketli(gunler.map(g => g.oran)).map(v => +v.toFixed(1)), borderColor: css("--muted"), borderDash: [5, 4], pointRadius: 0, tension: .25 },
+    ]},
+    options: { ...ortak, scales: { y: { min: 0, max: 100 }, x: { grid: { display: false } } } }
+  }));
+
+  grafikler.push(new Chart(document.getElementById("cNet"), {
+    type: "line",
+    data: { labels: etiket, datasets: [
+      { label: "Net", data: gunler.map(g => +g.net.toFixed(2)), borderColor: css("--net"), backgroundColor: css("--net"), tension: .25, pointRadius: 3 },
+      { label: "7 günlük ort.", data: hareketli(gunler.map(g => g.net)).map(v => +v.toFixed(2)), borderColor: css("--muted"), borderDash: [5, 4], pointRadius: 0, tension: .25 },
+    ]},
+    options: { ...ortak, scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
+  }));
+}
+
+function tablo(kayitlar, gunler) {
+  const t = document.getElementById("tablo");
+  if (!kayitlar.length) {
+    t.innerHTML = `<tr><td class="empty" colspan="8">Henüz kayıt yok. İlk testinin sonuçlarını gönder, buraya ekleyelim.</td></tr>`;
+    return;
+  }
+  let h = `<tr><th>Tarih</th><th>Ders</th><th>Soru</th><th>D</th><th>Y</th><th>B</th><th>Net</th><th>%</th></tr>`;
+  for (const g of [...gunler].reverse()) {
+    const testler = kayitlar.filter(r => r.tarih === g.tarih);
+    h += `<tr class="day"><td>${trTarih(g.tarih)}</td><td>${g.test} test</td><td>${g.soru}</td><td>${g.dogru}</td><td>${g.yanlis}</td><td>${g.bos}</td><td>${fmt(g.net)}</td><td>${fmt(g.oran, 1)}</td></tr>`;
+    for (const r of testler) {
+      const sil = r.kaynak === "yerel" ? ` <button class="x" title="Sil" data-idx="${r.idx}">✕</button>` : "";
+      h += `<tr><td></td><td>${r.ders || "–"}${sil}</td><td>${r.soru}</td><td>${r.dogru}</td><td>${r.yanlis}</td><td>${r.bos}</td><td>${fmt(net(r))}</td><td>${fmt(100 * r.dogru / r.soru, 1)}</td></tr>`;
+    }
+  }
+  t.innerHTML = h;
+  t.querySelectorAll("button.x").forEach(b => b.onclick = () => {
+    const v = yerelOku(); v.splice(+b.dataset.idx, 1); yerelYaz(v); ciz();
+  });
+}
+
+function ciz() {
+  const kayitlar = tumKayitlar();
+  const gunler = gunlukTopla(kayitlar);
+  istatistik(gunler);
+  grafik(gunler);
+  tablo(kayitlar, gunler);
+}
+
+const form = document.getElementById("form");
+form.tarih.value = new Date().toLocaleDateString("en-CA");
+form.onsubmit = e => {
+  e.preventDefault();
+  const err = document.getElementById("err"); err.textContent = "";
+  const soru = +form.soru.value, dogru = +form.dogru.value, yanlis = +form.yanlis.value;
+  const bos = form.bos.value === "" ? soru - dogru - yanlis : +form.bos.value;
+  if (bos < 0 || dogru + yanlis + bos !== soru) { err.textContent = "Doğru + yanlış + boş, soru sayısına eşit olmalı."; return; }
+  const v = yerelOku();
+  v.push({ tarih: form.tarih.value, ders: form.ders.value.trim(), soru, dogru, yanlis, bos });
+  yerelYaz(v);
+  ["soru", "dogru", "yanlis", "bos"].forEach(k => form[k].value = "");
+  ciz();
+};
+document.getElementById("kopyala").onclick = async () => {
+  const veri = tumKayitlar().map(({ kaynak, idx, ...r }) => r);
+  const txt = JSON.stringify(veri, null, 2);
+  try { await navigator.clipboard.writeText(txt); alert("Kopyalandı."); } catch { prompt("Kopyala:", txt); }
+};
+matchMedia("(prefers-color-scheme: dark)").addEventListener("change", ciz);
+
+ciz();
+</script>
+</body>
+</html>
