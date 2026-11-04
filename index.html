@@ -117,13 +117,22 @@
   <h2 class="bolum">Denemeler</h2>
   <p class="sub">Denemeler günlük test istatistiklerine katılmaz, ayrı takip edilir.</p>
   <div class="stats" id="dStats"></div>
-  <div class="card">
-    <h2>Deneme netleri</h2>
-    <div class="chart-box"><canvas id="cDeneme"></canvas></div>
+  <div class="grid2">
+    <div class="card">
+      <h2>Deneme netleri</h2>
+      <div class="chart-box"><canvas id="cDeneme"></canvas></div>
+    </div>
+    <div class="card">
+      <h2>Tahmini ALES puanları</h2>
+      <div class="chart-box"><canvas id="cPuan"></canvas></div>
+    </div>
   </div>
   <div class="card">
     <h2>Deneme sonuçları</h2>
     <div class="scroll"><table id="dTablo"></table></div>
+    <p class="note">Puan = sabit + Sayısal net × katsayı + Sözel net × katsayı (en fazla 100).
+      SAY: 47,433 + 0,775·Say + 0,325·Söz · SÖZ: 40,910 + 0,270·Say + 0,775·Söz · EA: 45,408 + 0,518·Say + 0,652·Söz.
+      Sayısal = Matematik + Geometri, Sözel = Türkçe + Mantık. ÖSYM gerçek puanı adayların ortalamasına göre hesapladığı için bu değerler tahminidir; katsayılar her sınavda biraz değişir.</p>
   </div>
 
   <div class="card">
@@ -153,6 +162,15 @@
    ============================================== */
 const SIFRELI_VERI = /*VERI*/{"iter":310000,"salt":"AArVE5OHmQhy/1OJVtnSFw==","iv":"aPBt5S/Zn/mfsGrU","veri":"w69kFa3Msr470J1XLamLzpBu45A4a1GyhqprIdht79tJhokfzkw5K4sSIoOML6l2PRNxntY8KZSdDrrGf3euDPXxWRa+hfVNSNePJSpprs+dH5fleUZPGmSp5WHnF+bRfDravDmTFpdddqBLgJUM6e83D7W2jM7fb0at8yq2GLceHCihTdhdBrYZGENQDSeLW+nwLDrVMKBwI2fqMR6+0aPsJ4C8gxn4bNSTcUowPw8FEN+TqgIZGy7iFSoHer7XS5Oa0bUrVnwWmJSvBr6ojY3he8q9QzSbUvzBFDMsE2pkVdqw0YM77BwGrs22iyIk/+p+9dBTvDHCwH7zRVLm13ZW7cYI0gY8VjOmKpkAplumWo9KZDYf76f8K1fguX5Hdjz99SGkPS5tjrruJNeSGmmTpTC4bQiukxrrU3cfsv8H0zRyuVbm2tmc4y8Ruho/UcdU+gGdJ0BzMyhJQ1HZ4Dsy4lKJyWOHr89crQDTMcj0ICl9EiX6QWnp3rODfaFvCJSioZDY1aqUdMm/NknMMRx0q7lbjKQywOQ27vdoeZOYr2GY9rchhrOxblJHEjvomJ42baYd6OwLrVe6+bqhG9APwZaHp0fOQdHvJVqW89wXokHWlbGMzPOO6MJ5YTRAlAGJYB9w5uNSZVi1K/OrB6oZnIAABdzPcqHJtuuNL6qzSWGMoeFLGurv3ATFX4I0N0l8E0swY23wVDMPdtqt5slax+Q2habeIRC06mddrZo+pJQH7AqLS7ek4Nv2J03AKCeMpro0iFw3q5U0flYVoQG7WaIVX43udqoAuJYrsgxmIkMfqFLx89RnLH20MzWKLBLAuk2sxIbY0SRd/UYk15PPp/yBFdoaSKHV2MSL8Ibuke12citl3WJbdbDdnPjXaUs49iZ7SsUIeHurtVAqhPjLyC9n5plHoeCitas5z0FkYO2sBg7lEWJUFSbo4pbPu1mqfhxhCfCapzFqE4rCMqE32pkSm8MVJNXTfZLKM1/X7XCar7vmf7iHRRzi223yW0n2BGukVWkBgJJlMTg6yDv8T2MQVvvzzci9g1QtQAjYSTuJxg/biKFHaOGpf4GQpdNtreejh3QPPEnqIGCOBAhilpIlmHTsfemvOthIH2QmmIRxRiCxFkZsmyt4WIFykdW0mG8MULMOF0zjvbUuIvAvQDqM8LPlzgC9djxNmkP6+AFJPIvw7uOSQq2EzRGb+i2j4RC8qKa2RSOHlKsUEdtvH5Ku/JMkuTaonnAk3m3v236ZCJ3ijTSPvXk4nztyZySIj+CSRlIfhdjr0/+mt/PeqvJAZ0cdHWoBk/pFGE4nN7HgWw/xUwCihJnylogM4WM8ou1RXRXVO6Sx/hYr/AsYPmVvePV/JmVMleayk4OKli3Ropklt04tDSVHvyrc7skw/xF2nbg+rSTE6b0qnEA3ezyOEcdqRtmwLqqIj83PkONTX1wHqshLto6c0jrgozlSsKXilTEPGcMQqWqfRol0G1cQai1cAHXlfO0KRfqtJhq9svr+6Y8eQ+ZWcuuZGaCi/2yaQDPIt4hvtQnSsDyXDupyUVjo0gX1VhCXHV06xJV+HLl3NP1GAMsahk8xtFcQ2qWqi/Ndu1b+j7MOnXrgureCFrab5eEYu64wLvImzFqrpczhp1gW3RCXH2dFemR93fdn1s+NJPfvp629CG1yk2W71aginx7BVv3Xa+Y5iHQxJn3zpv33ZimbbkWrw5sNu/A65O0eWi7x1GaBME8h+FJPJ9/WoqxGvhIAlA2+wbfcIq79K7KrTd97Tx+wM7peJhH/yOMIXdoRmDHW0sYc6I7vZv8LeRuAvEDI/TuYrLX/h/sMypTnWgKrWI0yQg7yUOkYaipcQv+U+pQGw2c0P6KnRKzILsM5rOhHUFOwaKjZlysnkEkrjhIPt6e/0Ws8TaH4XYtKeOSdJQUYjiHdJ2ejOwVRTeAKClwFJ87GGCncO6kwbn6O0ZUfqZvN1+EPhbFA+mii5qW6GH8lzOQSasHInoigF9Uot/0W1FN3dKGlBLPm3RAkNcdd0hTR/a4ddc9JvZwKWcP2+4fUv8tiFbqpHari01FKHHIbKz1QqYBk4aRkom0EJv/madv0+jb183uYAq53Nal1IFgDAdVPhiRhVBq62UAC00lwGW/m/Z7LGNFGzbqhNBz3AABLNKkW5SPw07+tQtc3uCd2UWLxZfELEcfUMEAe9kgM7O4PfF0XpzhrEQFhMx0eLAPuQJZUChOwSXHrEj6glvU8fh8itMhI9u/fPiqSSwmDTysvGKMXpK28/iDBybRNmVZgoyDgU3Ox0Udc+GcuDtt6ax2UZ+V0TU1QdWVdGGCtnfMOwMVY8XF3WkARtxcZ5pDPGWGsg9IC9hWVzKeUnMB8v39NF6z6vtDRQbMUdlwTI7umvk4wG8zgBm0scbshu/5NcwtH6PIKjKYsUEyKLkwzOFjoYQ7CfIupYj9nke1JhjBDWsb3JtkvxU6RHOc2QGANHuD874PMmx+lH6nHgTFjrffpj2TcGdD3/NppfAk0M1q/4bKgM9p5JJCn47FOjA1GECG4EwnGSQq57Jku//ZAfMueZ+EVBqLtHbnifalZB0FkRd9CjLR+2LcbZ63h/VRT8zU56NdOxjzbGt45KV+inj0gQqRfKApH1oHFyc6YmzEiXFWmZXEw5cc4TxCk2nozwtILOHi1IvFZSeq5vUVY44JXSEuJH8QSZfaBZaydiC3IVoLjeyezSEEAqhM//O2b/DMPULA7ay3D0wXJNVtVhFZBpWNh6xXgyfTgofUxYe8bJXcd1LnZ5Ku7wJf9DujJce6F630n/YvkPVnNqt6L1vN+8WcnRLkcDVuUt8RxSfj6f49daHKFRjVosyhwLdwbTXZWLPlH7V+fR6crPCoO5b2Qy1w/40HvMSQ+1nGtykbRyoRO02XrSzq9KOhXUa/bIx6lFNrV8Hhz9OMGxWTAvuOihGDsm3l59WAqM4IOcqU0h2d84CNxhB34UqK9CGQd6otNHAxk6ywBwVPn1JzKiF/eU0GwTLiL1CDQFWJiytn0vwQXxMW6MtmhuPINIXk2PF7nXns7g8ZKHjA1mdBIcukjX7H/8rLVOpJKTmc5xh0Yvo4Ptu+nZghkYiCMQpTPj+G5vf4iPsMRc2T1eo2/UO2ca0Wof+/RGbJyxgxOL7YP4OZElLU45v/j/hX8H+dW2KH6Wr8yiX/75SOnWwJ4lCBNvv+PygFyv8R6paIg6/dfA4ixA7FWZLtoQEVfRSJR1F/8NeFqPxfACQzdvdus46pBxWMDt2ebLonsoFTfXx/Af7kxxjkqQQG6Rt2UOWQLUBzqGkK+K3eZvmGgTfT8u5JleZaladTOxR4u3JeVwy0prFbOV8WZdPQRjeYQ3CySqIC4KLCfG+Uh4fcpgw=="}/*VERI*/;
 let KAYITLAR = [], KITAPLAR = {}, DENEMELER = [];
+
+/* ALES tahmini puan katsayıları: puan = sabit + say·Sayısal net + soz·Sözel net */
+const ALES = {
+  SAY: { sabit: 47.433, say: 0.775, soz: 0.325 },
+  SÖZ: { sabit: 40.910, say: 0.270, soz: 0.775 },
+  EA:  { sabit: 45.408, say: 0.518, soz: 0.652 },
+};
+const SAYISAL_DERSLER = ["Matematik", "Geometri"];
+const SOZEL_DERSLER = ["Türkçe", "Mantık"];
 
 /* Net hesabı: kaç yanlış bir doğruyu götürür (YKS/LGS için 4, KPSS için 4, 0 = ceza yok) */
 const YANLIS_GOTURUR = 4;
@@ -294,6 +312,9 @@ function denemeler() {
   const st = document.getElementById("dStats");
   if (!liste.length) { st.innerHTML = ""; document.getElementById("dTablo").innerHTML = `<tr><td class="empty">Henüz deneme yok.</td></tr>`; return; }
 
+  const bolumNet = (d, liste) => Object.entries(d.bolumler).filter(([k]) => liste.includes(k)).reduce((t, [, b]) => t + net(b), 0);
+  const puanlar = d => { const sy = bolumNet(d, SAYISAL_DERSLER), sz = bolumNet(d, SOZEL_DERSLER);
+    return Object.fromEntries(Object.entries(ALES).map(([t, k]) => [t, Math.min(100, k.sabit + k.say * sy + k.soz * sz)])); };
   const kart = (k, v, d = "") => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${d}</div>`;
   const son = liste[liste.length - 1], onceki = liste[liste.length - 2];
   const fark = (a, b) => { const x = a - b; return `<div class="d ${x >= 0 ? "up" : "down"}">${x >= 0 ? "▲" : "▼"} ${fmt(Math.abs(x))} önceki denemeye göre</div>`; };
@@ -301,7 +322,9 @@ function denemeler() {
     kart("Son deneme toplam net", fmt(net(toplam(son))), onceki ? fark(net(toplam(son)), net(toplam(onceki))) : "") +
     dersler.map(d => son.bolumler[d] ? kart(`Son ${d} neti`, fmt(net(son.bolumler[d])),
       onceki && onceki.bolumler[d] ? fark(net(son.bolumler[d]), net(onceki.bolumler[d])) : "") : "").join("") +
-    kart("En iyi toplam net", fmt(Math.max(...liste.map(d => net(toplam(d))))));
+    kart("En iyi toplam net", fmt(Math.max(...liste.map(d => net(toplam(d)))))) +
+    Object.keys(ALES).map(t => kart(`Son ${t} puanı (tahmini)`, fmt(puanlar(son)[t]),
+      onceki ? fark(puanlar(son)[t], puanlar(onceki)[t]) : "")).join("");
 
   const renk = ["--net", "--dogru", "--yanlis", "--bos"];
   grafikler.push(new Chart(document.getElementById("cDeneme"), {
@@ -314,11 +337,22 @@ function denemeler() {
       scales: { y: { beginAtZero: true }, x: { grid: { display: false } } } }
   }));
 
+  const puanRenk = { SAY: "--net", "SÖZ": "--dogru", EA: "--yanlis" };
+  grafikler.push(new Chart(document.getElementById("cPuan"), {
+    type: "line",
+    data: { labels: liste.map(d => `${d.ad} (${trTarih(d.tarih)})`), datasets: Object.keys(ALES).map(t => ({
+      label: t, data: liste.map(d => +puanlar(d)[t].toFixed(2)), borderColor: css(puanRenk[t]), backgroundColor: css(puanRenk[t]), pointRadius: 4, tension: .25 })) },
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      scales: { y: { min: 40, max: 100 }, x: { grid: { display: false } } } }
+  }));
+
   const satir = (a, b, x, cls = "") => `<tr class="${cls}"><td>${a}</td><td>${b}</td><td>${x.soru}</td><td>${x.dogru}</td><td>${x.yanlis}</td><td>${x.bos}</td><td>${fmt(net(x))}</td><td>${fmt(100 * x.dogru / x.soru, 1)}</td></tr>`;
   let h = `<tr><th>Deneme</th><th>Bölüm</th><th>Soru</th><th>D</th><th>Y</th><th>B</th><th>Net</th><th>%</th></tr>`;
   for (const d of [...liste].reverse()) {
     h += satir(`${d.ad} · ${trTarih(d.tarih)}`, "Toplam", toplam(d), "day");
     for (const [b, x] of Object.entries(d.bolumler)) h += satir("", b, x);
+    const p = puanlar(d);
+    h += `<tr><td></td><td class="not" colspan="7"><b>Tahmini puan:</b> ${Object.keys(ALES).map(t => `${t} ${fmt(p[t])}`).join(" · ")}</td></tr>`;
     if (d.not) h += `<tr><td></td><td class="not" colspan="7">Not: ${d.not}</td></tr>`;
   }
   document.getElementById("dTablo").innerHTML = h;
