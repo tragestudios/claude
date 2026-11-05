@@ -42,9 +42,23 @@
   .bar-satir.toplam { font-weight: 650; }
   .bar-satir.toplam .sayi { color: var(--text); }
   .bar { height: 10px; border-radius: 99px; background: color-mix(in srgb, var(--muted) 18%, transparent); overflow: hidden; }
-  .bar > span { display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .bar { position: relative; }
+  .bar > span { position: absolute; left: 0; top: 0; display: block; height: 100%; border-radius: 99px; background: var(--accent); }
+  .bar > span.tahmin { background: color-mix(in srgb, var(--accent) 28%, transparent); }
+  .bar > i { position: absolute; top: 0; bottom: 0; width: 2px; margin-left: -1px; background: var(--text); opacity: .55; }
   .bar-satir.toplam .bar { height: 14px; }
   .bar-satir.toplam .bar > span { background: var(--dogru); }
+  .bar-satir.toplam .bar > span.tahmin { background: color-mix(in srgb, var(--dogru) 28%, transparent); }
+  .tahmin-not { font-size: .8rem; color: var(--muted); margin: 2px 0 8px 92px; }
+  .lejant { font-size: .78rem; color: var(--muted); margin-top: 14px; display: flex; gap: 14px; flex-wrap: wrap; align-items: center; }
+  .lejant b { display: inline-block; width: 18px; height: 8px; border-radius: 99px; vertical-align: middle; margin-right: 5px; }
+  .geri-sayim { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+                background: var(--card); border: 1px solid var(--line); border-left: 4px solid var(--accent);
+                border-radius: 12px; padding: 14px 16px; margin-bottom: 16px; }
+  .geri-sayim .gun { font-size: 2rem; font-weight: 700; line-height: 1; font-variant-numeric: tabular-nums; }
+  .geri-sayim .gun small { font-size: 1rem; font-weight: 600; }
+  .geri-sayim .acik { color: var(--muted); font-size: .85rem; }
+  @media (max-width: 520px) { .tahmin-not { margin-left: 0; } }
   .up { color: var(--dogru) !important; } .down { color: var(--yanlis) !important; }
   .chart-box { position: relative; height: 280px; }
   .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
@@ -94,6 +108,8 @@
 <main hidden>
   <h1>Soru Takibi</h1>
   <p class="sub">Günlük çözülen testler, doğru / yanlış / boş dağılımı ve net gelişimi.</p>
+
+  <div class="geri-sayim" id="geriSayim"></div>
 
   <div class="stats" id="stats"></div>
 
@@ -178,6 +194,12 @@
    ============================================== */
 const SIFRELI_VERI = /*VERI*/{"iter":310000,"salt":"kl2XZMcBwpNeL19QheVMeg==","iv":"x4RLeAjrM0M6dwd9","veri":"xpfBEZ5Frwv1RbbVoUdhEHUc5AoNz2oS5W5duUutwLmpA/NjfvJpeoiUPcnnsgF64+srN7HnHYV9mJxrOa2JvWipOcnAaj7+wjeCl5Q6jrWgdjk5ORetZIPAwb8LSk/n+frbqRqkPkZ9S6OyII+K5FehT8nFwUdnlVaTVRBK9H7jjqTrVwDRL6JNewd4AtYTwF/vuxyGODZyeNvMCmdNFsZsp5D3DHJ4zyEzw5m4QcKbNN68dtxcXrIAdoSG4DCJQluSkAE54++uu6jpIv9KKJm3imRCnrl6tkZ/PE5CaTvW8tNmL5hSo3o7zurWJuLTGLtjwcZCAKApfvdATB3hf/9nHjKMU5GdE0y0YfQoveKKBAeRxUFvpiEZc9EF3ldlYuVaDwSZ/tmKqYPUR+5Ve+MB/evMrpbfAhWNp/bLnmqHQpVoL6Cd8iTwuUBNP6Vn7Wt0dD2ay3nIXk7WEPrcTCquJN2J1T5bYiXTbInr2MbPDRzk6tUUap0pUVY1VEJnQT9JzACoeBz5pRYym5Nxv12XtcVxNTRxwoya/8HxbrJTmIkKFXOSY8M00AT0WEwrLc5ZLvj8SqGZauvYZq2OOzWLnm83Wobct0EEjcMW4vBsCAg5VNVwh7D6etwDOYp/cHtwA2hz0SUjfVl6WSvgDJCWAwycfmG4GiayIBB3pQYKTTYlc0W9CR5VteuCTfBfTjAKkx3X2mkJeEISjjnMFFPCmqx0UNwiP63Ab9508gpJLUBCaw0Ue34WC/oErtDobQWFCnoP/zbgYQUTyaPrW+Jagp1bxFpxqJhs779T7EMWjPo4Jzp3VFUe+72h8JBbnqG4LNgYIWEyB7gskKi2NBZ0pfjrlal2U3TWaQV3XS5aJDKNqu6PrSy300o2W5uwF35JOpbSb/3ho+sMy72i+GW+LkJPqLrGmh3sdRT7/EzqU4cVbtrIatUSmYWDSqv7BrjKp0L3iY9GmKGqLeYbT86gJOXrf3pIOfHYom5/ZVUcepbDOSB4sTlwrVTPaO2PjfwUYeF5cA0hs0vt1EqJAkFTc2D7qw+ENV9QCWQJzSvBMos+6cisjCTT8AADA0cHtHIxGSWZoesFnktTKTRFXuXWBRPhQt5G2QwzgQesLg9bpQYN9TETCj0b2yPgP0SzNc+JbjK641Gqd7s0T4vTggyg71nT7FiDIByurmWzsESYZiUtmXo6Dr01oVp+2zvQdHFZ9gICdSGRgbI6njXQ2N+rNxFFzMOS+hTqE9llBLMXFkTttTJciMojwhIeugroZO8fkVainm+u3QMMcKB/Bdyy/op1OX1HO7hzFmM4bjEvvN6SJEkdb6Hrz0c0mSVKDufsLsl0CJmizxrk8MN0tA/g6C0kjCiFokRr30MrmHikEK88C1HlhAza7Qco/I3xqmaJdC6+JEPBfZyZ9+vqonKTpYd7sDwiACronkQyadmVk3aZhb0kXPbBwaWkP1J3zpuRa6OOo31wyq+/lz3JEsBsXs9WemWz/riovwjSjuq3Z3g1XJH9USpoe9wPFXdKlXJAgblcMib4BC+9XnGV5MsTyZIUAwMgihrkk2ioyNJC9QtnZkbMsMh8xoEgB5rL+tRZPaDcqUBzwg2KjymozhbGWBWXa7ACoxDOHaMB8554DdSaddUXQcCUweLLBzoUbeCh37NgWPCQGpR15IQM0kJi4KrhOyGQ0lP8WgTpPhRuaEqZY1DZoMzbMeF/VwQ9nEsfmEl2pe/2LSyopadbRydnimgTqSxMIxhx71qJvICPy24OpiNhwdv7Y+mSOogSSjC4tbCtYDT5tR6oROEb0oKq+6gKeJvb9QAcMOdSpQjYVMXLvmVlq4cHsg1gEAziGct7XDSs89fG1e15z1UMcBRIgI+8jRR8/cN0CirExuvWC7453y6NBC1rQyEW2obXykZGLNu7JSj+AKnug4k0nOBMpUSJO+rvv2fsrD4CdHzz39gdeg1MQQgzWTQMorymYdtatLxpZfh3Qn7luR+MqccMQAPVv8oCgdBUyXlKLNGQ58q7vyRDebPW/Yzl+CJMLzSHQ+I7vBkoRvsqKGbs6bvw3oqLBwbNbOSa1F22GBiNwuwOXNL+WRjqUOlBWj+HkLB4E4hHx/DzqEfoIwTFs9Lge/Ayg1gTXYfcQ/cZGdVR+TmBCI4Qtshoa4P8j2wwX1NubAX3dUsGEyX2B+Tu9bsUiQZV1FbDIOr21bPutd8BM0jMOiC7dNeD2BJTS+udwQPGckORzImFYeegieBOlCyUwvT/odf4krvOoSr44V4IcykcearCfWVtFLfgk9xK3Q1+xOushhHgD+qRnP/ajt/3aEDEzDI18mzP0WU5LrCPkED+6VchE8jRzAtx+r6ZpuoyEP7Qxl+9EkZ+M4TZ8FsKtC3gkIz7HXFYeYkK7svVtmlgMUHT4S1WSUHo9oU7vB+mHWUNWJ2Q2Ib3nKlfuxBEDbtN1tvVZVTMz/wcNcEhyAuJDxWOaWsfcL/skVOYgLAMzyK63EnztissajndH+7KIqVieBgezmt3kkFfZCD7RNVmkRoqQfJ3jp36du2hTRefCkJ66TxonUdjpyCe4hv122wK+qjhiUcnuHVwllubYrOm2X0f/nk2DRSIpHFW2g8yjDywj3FTCXteNtX5cAmPPeRL26WAWRX5x9SCsPo/Ma5qr/7eDgdVxIT8vyPadRX631qw/RCkNX4Nl6WX6Xxb5xvsKJC9xkPpadYsuj7FqPAcj81/t/XBXoSXK5Tj9/oX0GPAiVnwLjn0ewIpDN3W8I+bLf34H8pvRdkdEQkN3lIJQPJ+AvwAywgTzC4hrWpIRc3aJM62B6htbhUCn4pUg4yQ8YFq4XARVu7zNCO9x7+LZ4O/tq96ZKZpsDrYAOrbYkHjo60uHBxtWyYu7kvHPx3+fOpzNIC8h5mVmp+Jyj3rVxN67GcGDJ6xSdU2Y4oQwjCGSoEl8fm/3oZEGhsJ/VJgP+bX+lVAEQNlaD5+6OZtLS5fiyv3E4Wz0jGiWhX/bGewwo/OCrPfPJMXPq6/HJlDv5d6eL1MJLnV9orXy9Z9dFDEgARkve34yZFjnF1Au9JeEZveP5iZCDEbxyAG7XuFW4zYqkVpNvSb7K73sgeTW/njA98PibTnuxxkBCnCBlxQW8xdsGpfolyI/lEdyhRlfidedfJ6TQE9ZN1Gdwdg0oCVtHaB+fUUdCy4t69gXtI/JXoh9s7F3khS9C1RacTPFpz+IIdbjcdDeS+Iv7DfxTsH+Zdl2COrRR4UKwiUzcPCCEYB/MB2eUDo6mvi6pXX4QqfbyV8GyN54I/sYK011AVbLKbjyJslDdxVgUQrBvSW/P00nyj1t1lhaFEdk/XZdOhfBiENJPyNWSJZiEFlhU5KWcSfWbcCeQY2CHrnb7xQHNrxxb7fcdbzFYm48DAZOlOcrQXawHapDNw+qhPQ5PL/IOloJyRXEyUIz4Xvk+wS1PQWgsq10+JCGn26W+vfNLnwaHaRDkt/FbcU0ET0UDQxDhQiK+4rZ5n5vomdJRezsOqiGnSV6K/liaRMXBcGtK3GO/e0YsMjGRgipXNijYUwi6rD/Vxpxpn3xs/WVny20Vp9BT4ObZdzgRZb0kgahT9Brdv3s6jXSa9FE3S5+mDajWrjcnELy6gi8VLpo09xxk/as9n0PQTMul95pjBOdt1h+h1PJwCB1ij4hzg8gGBY3K+kFZ1V43DIdavqHFZe08WQcPUrAdyTuU/GrOnRA/TtNPyAEvV7zZUgS/wVJHHZD2AcmoK/88uQuM37HKiIXfGW7MLKVnAmaCkYfZYwuIk6yHyHS2TvN5IpWuMS4db1jV8G9nTA/pGiZJIRAoFn+dP5xc+KhW2u4WLiEra9ggrckAOXs/b7EW9aIOJga7R4EY1yw25bRGRnE1cPxkgIN6F1muT25S27/WswagFKzlzTp9hPs1KAv+jNaHnj2HDxjx/BfYE7mwRcB2y/4De4ODCl55mxC2i9agd+K0iBEcoVVKSFupTkCtKymvbGe0kE1vFPufoTELLP3JKgcNqBqmkmx3dIiEJvOz4aBuD+9VI3wixZg9XIhcEHYo+rdqdNyrvNeHsZERwwvn3YjfemGMk3rF0f8QXDE+la5ryPITBDKyMA23YduSXL2CVH6rCh58ZH521UFuv0w7ffU+3Hgo2zH8fspN/aTfYM8M8pUDo2v6K9HBICeFLcWI4ESEr/tRFxERravz+Sq3VXuj1bhxkxyGqPwojpXTlwowIMQC/XQ0PEUujPWGwfPSGdwWKv2eb9m/Petny4z/h5iDXUrjNra0sk+f1vT8HXLpqws+5yRsg5q5V0FOGTQ0x63tHmERgb/2DL8J+Q68T2i47CA2bazWwRmDR4/If2Em9Jz1yXvlsPODN9bf2agPtB7zp5fjYg1gDOQZsfiyq84+6Lm9mK1b/Kf62/TnQTQ/s0UX+CMLFse8GiEbq8qDjiarVrc5gxRBEWFYYPkGPds/nqlA3tFOSQbNYSXdmywc9/H9WMSOIf03Q1rxeyeWS3ra9+zyF2rZanr5iZf8d+zf3IQxzfJMBAP6xiCud6X0Y1Wad2zSYB+o1Amp9GmtXLq4gVSouwGoea5tHraBnugORw5ThfAwkqiK4C5HMaVjHrBcy1qOOx5y3Zr9fpx9ZhcBA="}/*VERI*/;
 let KAYITLAR = [], KITAPLAR = {}, DENEMELER = [], KITAP_TESTLERI = {};
+
+/* Sınav tarihi (geri sayım ve kitap tahminleri bu tarihe göre) */
+const SINAV = { ad: "ALES", ad_e: "ALES'e", tarih: "2026-11-29" };
+
+const bugunStr = () => new Date().toLocaleDateString("en-CA");
+const gunFarki = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5);
 
 /* Geometri konuları Matematik dersi altında tutulur; kitap ilerlemesinde konu adından ayırt edilir */
 const GEOMETRI = /açı|üçgen|dörtgen|çokgen|çember|daire|prizma|piramit|silindir|koni|küre|katı cisim|analitik|geometri|yamuk|paralelkenar|eşkenar|deltoid|benzerlik|pisagor|öklid/i;
@@ -382,8 +404,17 @@ function ilerleme(kayitlar) {
   const kart = document.getElementById("ilerlemeKart");
   const kitaplar = Object.entries(KITAP_TESTLERI);
   kart.hidden = !kitaplar.length;
-  const satir = (ad, n, top, cls = "") => { const y = top ? Math.min(100, 100 * n / top) : 0;
-    return `<div class="bar-satir ${cls}"><div>${ad}</div><div class="bar" role="progressbar" aria-valuenow="${n}" aria-valuemax="${top}"><span style="width:${y}%"></span></div><div class="sayi">${n}/${top} · %${fmt(y, 1)}</div></div>`; };
+  // Tahmin: ilk kayıttan bugüne kadarki günlük hızla sınavdan önceki son güne kadar devam edilirse
+  const bugun = bugunStr();
+  const ilk = kayitlar.length ? kayitlar[0].tarih : bugun;
+  const gecen = Math.max(1, gunFarki(ilk, bugun) + 1);          // bugün dahil geçen gün
+  const kalan = Math.max(0, gunFarki(bugun, SINAV.tarih) - 1);   // yarından sınav gününden önceki güne kadar
+  const tahmin = n => n + (n / gecen) * kalan;
+  const yuzde = (n, top) => top ? Math.min(100, 100 * n / top) : 0;
+  const satir = (ad, n, top, cls = "") => { const y = yuzde(n, top), t = yuzde(tahmin(n), top);
+    return `<div class="bar-satir ${cls}"><div>${ad}</div><div class="bar" role="progressbar" aria-valuenow="${n}" aria-valuemax="${top}">` +
+      `<span class="tahmin" style="width:${t}%"></span><span style="width:${y}%"></span>${n ? `<i style="left:${t}%" title="Tahmin: %${fmt(t, 0)}"></i>` : ""}</div>` +
+      `<div class="sayi">${n}/${top} · %${fmt(y, 1)}</div></div>`; };
   document.getElementById("ilerleme").innerHTML = kitaplar.map(([kitap, hedef]) => {
     const k = kayitlar.filter(r => r.kitap === kitap);
     // Kitapta ayrı Geometri bölümü yoksa geometri testleri Matematik'e sayılır
@@ -391,13 +422,28 @@ function ilerleme(kayitlar) {
     const say = b => k.filter(r => bol(r) === b).length;
     const top = Object.values(hedef).reduce((a, b) => a + b, 0);
     const bitti = Object.keys(hedef).reduce((a, b) => a + Math.min(say(b), hedef[b]), 0);
+    const t = Math.min(top, tahmin(bitti)), gerekli = kalan ? (top - bitti) / kalan : 0;
+    const not = t >= top ? `Bu hızla sınavdan önce biter.`
+      : `Bu hızla ${SINAV.ad_e} kadar: ~${Math.round(t)}/${top} (%${fmt(yuzde(t, top), 0)}) · Bitirmek için günde ~${fmt(gerekli, 1)} test gerekir (şu an ${fmt(bitti / gecen, 1)}).`;
     return `<div class="kitap"><h3>${kitap}</h3><div class="ad">${KITAPLAR[kitap] || ""}</div>` +
-      satir("Toplam", bitti, top, "toplam") +
+      satir("Toplam", bitti, top, "toplam") + `<div class="tahmin-not">${not}</div>` +
       (Object.keys(hedef).length > 1 ? Object.entries(hedef).map(([b, n]) => satir(b, say(b), n)).join("") : "") + `</div>`;
-  }).join("");
+  }).join("") + `<div class="lejant"><span><b style="background:var(--dogru)"></b>Çözülen</span>` +
+    `<span><b style="background:color-mix(in srgb, var(--dogru) 28%, transparent)"></b>Bu hızla ${SINAV.ad} gününe kadar (tahmin)</span></div>`;
+}
+
+function geriSayim() {
+  const el = document.getElementById("geriSayim");
+  const g = gunFarki(bugunStr(), SINAV.tarih);
+  const tarih = new Date(SINAV.tarih + "T00:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
+  el.innerHTML = g > 0
+    ? `<div><div class="acik">${SINAV.ad_e} kalan</div><div class="gun">${g} <small>gün</small></div></div><div class="acik">${tarih}<br>${Math.floor(g / 7)} hafta ${g % 7} gün</div>`
+    : g === 0 ? `<div class="gun">Bugün ${SINAV.ad} günü. Başarılar!</div>`
+    : `<div class="acik">${SINAV.ad} ${tarih} tarihinde yapıldı.</div>`;
 }
 
 function ciz() {
+  geriSayim();
   const kayitlar = tumKayitlar();
   const gunler = gunlukTopla(kayitlar);
   istatistik(gunler);
