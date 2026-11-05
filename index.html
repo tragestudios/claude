@@ -21,6 +21,7 @@
     --dogru: #3fbf75; --yanlis: #ef6b6b; --bos: #7b8494; --net: #6f97ee; --accent: #6f97ee;
   }
   * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
   body { margin: 0; background: var(--bg); color: var(--text);
          font: 15px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
   main { max-width: 1000px; margin: 0 auto; padding: 24px 16px 48px; }
@@ -88,6 +89,12 @@
   #girisForm .sub { margin: 0; }
   label.hatirla { display: flex; gap: 8px; align-items: center; font-size: .85rem; }
   label.hatirla input { width: auto; }
+  .sekmeler { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 12px 0 18px; }
+  .sekmeler button { background: none; border: none; border-bottom: 3px solid transparent; border-radius: 0;
+                     color: var(--muted); font-weight: 600; padding: 8px 16px; margin-bottom: -1px; }
+  .sekmeler button[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
+  .seviye { display: inline-block; min-width: 22px; text-align: center; font-weight: 700; border-radius: 6px; padding: 0 6px;
+            background: color-mix(in srgb, var(--accent) 14%, transparent); color: var(--accent); }
   .konu { color: var(--muted); }
   tr.ders td { font-weight: 650; background: color-mix(in srgb, var(--accent) 7%, transparent); }
   td.ind { padding-left: 22px; }
@@ -107,6 +114,12 @@
 </div>
 <main hidden>
   <h1>Soru Takibi</h1>
+  <nav class="sekmeler" role="tablist">
+    <button type="button" role="tab" data-sekme="ales">ALES</button>
+    <button type="button" role="tab" data-sekme="yds">YDS</button>
+  </nav>
+
+  <section id="sekme-ales" role="tabpanel">
   <p class="sub">Günlük çözülen testler, doğru / yanlış / boş dağılımı ve net gelişimi.</p>
 
   <div class="geri-sayim" id="geriSayim"></div>
@@ -186,6 +199,33 @@
     </div>
     <p class="note">Asıl kayıtlar dosyadaki <code>KAYITLAR</code> listesinde tutulur. Buradan eklediklerin yalnızca bu tarayıcıda saklanır; kalıcı olması için JSON'u kopyalayıp Claude'a gönder.</p>
   </div>
+  </section>
+
+  <section id="sekme-yds" role="tabpanel" hidden>
+    <p class="sub">YDS denemeleri. 80 soru, 180 dakika; her doğru 1,25 puan, yanlışlar doğruyu götürmez.</p>
+    <div class="geri-sayim" id="ydsGeriSayim" hidden></div>
+    <div class="stats" id="ydsStats"></div>
+    <div class="grid2">
+      <div class="card">
+        <h2>YDS puanı</h2>
+        <div class="chart-box"><canvas id="cYdsPuan"></canvas></div>
+      </div>
+      <div class="card">
+        <h2>Doğru / yanlış / boş</h2>
+        <div class="chart-box"><canvas id="cYdsDagilim"></canvas></div>
+      </div>
+    </div>
+    <div class="card" id="ydsBolumKart" hidden>
+      <h2>Bölüm bazında (tüm denemeler)</h2>
+      <div class="scroll"><table id="ydsBolum"></table></div>
+      <p class="note">Bölümler doğruluk oranına göre sıralı: en zayıf bölüm en üstte.</p>
+    </div>
+    <div class="card">
+      <h2>YDS deneme sonuçları</h2>
+      <div class="scroll"><table id="ydsTablo"></table></div>
+      <p class="note">Puan = Doğru × 1,25 (100 üzerinden). Seviye: A 90–100 · B 80–89 · C 70–79 · D 60–69 · E 50–59.</p>
+    </div>
+  </section>
 </main>
 
 <script>
@@ -197,9 +237,14 @@ let KAYITLAR = [], KITAPLAR = {}, DENEMELER = [], KITAP_TESTLERI = {};
 
 /* Sınav tarihi (geri sayım ve kitap tahminleri bu tarihe göre) */
 const SINAV = { ad: "ALES", ad_e: "ALES'e", tarih: "2026-11-29" };
+window.SINAV_ALES = SINAV;
 
 const bugunStr = () => new Date().toLocaleDateString("en-CA");
 const gunFarki = (a, b) => Math.round((new Date(b + "T00:00:00") - new Date(a + "T00:00:00")) / 864e5);
+
+/* YDS: sınav tarihini öğrenince buraya yaz ("YYYY-AA-GG"); boşsa geri sayım gizlenir */
+const YDS_SINAV = { ad: "YDS", ad_e: "YDS'ye", tarih: "" };
+let YDS_DENEMELER = [];
 
 /* Geometri konuları Matematik dersi altında tutulur; kitap ilerlemesinde konu adından ayırt edilir */
 const GEOMETRI = /açı|üçgen|dörtgen|çokgen|çember|daire|prizma|piramit|silindir|koni|küre|katı cisim|analitik|geometri|yamuk|paralelkenar|eşkenar|deltoid|benzerlik|pisagor|öklid/i;
@@ -432,8 +477,9 @@ function ilerleme(kayitlar) {
     `<span><b style="background:color-mix(in srgb, var(--dogru) 28%, transparent)"></b>Bu hızla ${SINAV.ad} gününe kadar (tahmin)</span></div>`;
 }
 
-function geriSayim() {
-  const el = document.getElementById("geriSayim");
+function geriSayim(el = document.getElementById("geriSayim"), SINAV = window.SINAV_ALES) {
+  el.hidden = !SINAV.tarih;
+  if (!SINAV.tarih) return;
   const g = gunFarki(bugunStr(), SINAV.tarih);
   const tarih = new Date(SINAV.tarih + "T00:00:00").toLocaleDateString("tr-TR", { day: "numeric", month: "long", year: "numeric", weekday: "long" });
   el.innerHTML = g > 0
@@ -441,6 +487,78 @@ function geriSayim() {
     : g === 0 ? `<div class="gun">Bugün ${SINAV.ad} günü. Başarılar!</div>`
     : `<div class="acik">${SINAV.ad} ${tarih} tarihinde yapıldı.</div>`;
 }
+
+/* ---------- YDS ---------- */
+const ydsPuan = x => x.dogru * 1.25;
+const ydsSeviye = p => p >= 90 ? "A" : p >= 80 ? "B" : p >= 70 ? "C" : p >= 60 ? "D" : p >= 50 ? "E" : "–";
+function yds() {
+  geriSayim(document.getElementById("ydsGeriSayim"), YDS_SINAV);
+  const liste = [...YDS_DENEMELER].sort((a, b) => a.tarih.localeCompare(b.tarih));
+  const st = document.getElementById("ydsStats"), tablo = document.getElementById("ydsTablo");
+  const kart = (k, v, d = "") => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${d}</div>`;
+  const fark = (a, b) => { const x = a - b; return `<div class="d ${x >= 0 ? "up" : "down"}">${x >= 0 ? "▲" : "▼"} ${fmt(Math.abs(x))} önceki denemeye göre</div>`; };
+  if (!liste.length) {
+    st.innerHTML = kart("Çözülen deneme", 0) + kart("Son puan", "–") + kart("En iyi puan", "–") + kart("Ortalama puan", "–");
+    tablo.innerHTML = `<tr><td class="empty">Henüz YDS denemesi yok. İlk denemeni çözünce sonuçlarını gönder, buraya ekleyelim.</td></tr>`;
+    document.getElementById("ydsBolumKart").hidden = true;
+  } else {
+    const son = liste[liste.length - 1], onceki = liste[liste.length - 2], puanlar = liste.map(ydsPuan);
+    st.innerHTML = kart("Çözülen deneme", liste.length) +
+      kart("Son puan", `${fmt(ydsPuan(son))} <span class="seviye">${ydsSeviye(ydsPuan(son))}</span>`, onceki ? fark(ydsPuan(son), ydsPuan(onceki)) : "") +
+      kart("En iyi puan", fmt(Math.max(...puanlar))) +
+      kart("Ortalama puan", fmt(puanlar.reduce((a, b) => a + b, 0) / puanlar.length)) +
+      kart("Son D / Y / B", `${son.dogru} / ${son.yanlis} / ${son.bos}`);
+    const satir = (a, b, x, cls = "", p = "") => `<tr class="${cls}"><td>${a}</td><td>${b}</td><td>${x.soru}</td><td>${x.dogru}</td><td>${x.yanlis}</td><td>${x.bos}</td><td>${fmt(100 * x.dogru / x.soru, 1)}</td><td>${p}</td></tr>`;
+    let h = `<tr><th>Deneme</th><th>Bölüm</th><th>Soru</th><th>D</th><th>Y</th><th>B</th><th>%</th><th>Puan</th></tr>`;
+    for (const d of [...liste].reverse()) {
+      h += satir(`${d.ad} · ${trTarih(d.tarih)}`, "Toplam", d, "day", `${fmt(ydsPuan(d))} <span class="seviye">${ydsSeviye(ydsPuan(d))}</span>`);
+      for (const [b, x] of Object.entries(d.bolumler || {})) h += satir("", b, x);
+      if (d.sure) h += `<tr><td></td><td class="not" colspan="7">Süre: ${d.sure} dakika</td></tr>`;
+      if (d.not) h += `<tr><td></td><td class="not" colspan="7">Not: ${d.not}</td></tr>`;
+    }
+    tablo.innerHTML = h;
+    // Bölüm bazında toplam
+    const bt = {};
+    for (const d of liste) for (const [b, x] of Object.entries(d.bolumler || {})) {
+      const g = bt[b] = bt[b] || { soru: 0, dogru: 0, yanlis: 0, bos: 0, n: 0 };
+      g.soru += x.soru; g.dogru += x.dogru; g.yanlis += x.yanlis; g.bos += x.bos; g.n++;
+    }
+    const bk = Object.entries(bt).sort((a, b) => a[1].dogru / a[1].soru - b[1].dogru / b[1].soru);
+    document.getElementById("ydsBolumKart").hidden = !bk.length;
+    document.getElementById("ydsBolum").innerHTML = `<tr><th>Bölüm</th><th>Deneme</th><th>Soru</th><th>D</th><th>Y</th><th>B</th><th>%</th></tr>` +
+      bk.map(([b, g]) => `<tr><td>${b}</td><td>${g.n}</td><td>${g.soru}</td><td>${g.dogru}</td><td>${g.yanlis}</td><td>${g.bos}</td><td>${fmt(100 * g.dogru / g.soru, 1)}</td></tr>`).join("");
+  }
+  if (document.getElementById("sekme-yds").hidden) return; // grafikler yalnızca sekme açıkken çizilir
+  const etiket = liste.map(d => `${d.ad} (${trTarih(d.tarih)})`);
+  const ortak = { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false } };
+  grafikler.push(new Chart(document.getElementById("cYdsPuan"), {
+    type: "line",
+    data: { labels: etiket, datasets: [{ label: "Puan", data: liste.map(d => ydsPuan(d)), borderColor: css("--net"), backgroundColor: css("--net"), pointRadius: 4, tension: .25 }] },
+    options: { ...ortak, scales: { y: { min: 0, max: 100 }, x: { grid: { display: false } } } }
+  }));
+  grafikler.push(new Chart(document.getElementById("cYdsDagilim"), {
+    type: "bar",
+    data: { labels: etiket, datasets: [
+      { label: "Doğru", data: liste.map(d => d.dogru), backgroundColor: css("--dogru"), stack: "s", maxBarThickness: 60 },
+      { label: "Yanlış", data: liste.map(d => d.yanlis), backgroundColor: css("--yanlis"), stack: "s", maxBarThickness: 60 },
+      { label: "Boş", data: liste.map(d => d.bos), backgroundColor: css("--bos"), stack: "s", maxBarThickness: 60 },
+    ]},
+    options: { ...ortak, scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, max: 80 } } }
+  }));
+}
+
+/* ---------- Sekmeler ---------- */
+const SEKME_KEY = "soru-takibi-sekme";
+function sekmeAc(ad, kaydet = true) {
+  document.querySelectorAll(".sekmeler button").forEach(b => b.setAttribute("aria-selected", b.dataset.sekme === ad));
+  document.querySelectorAll("main > section[role=tabpanel]").forEach(s => s.hidden = s.id !== "sekme-" + ad);
+  if (kaydet) try { localStorage.setItem(SEKME_KEY, ad); } catch {}
+  if (!document.querySelector("main").hidden) ciz();
+}
+document.querySelectorAll(".sekmeler button").forEach(b => b.onclick = () => sekmeAc(b.dataset.sekme));
+(() => { let s = "ales"; try { s = localStorage.getItem(SEKME_KEY) || "ales"; } catch {}
+  if (location.hash === "#yds" || location.hash === "#ales") s = location.hash.slice(1);
+  sekmeAc(s, false); })();
 
 function ciz() {
   geriSayim();
@@ -451,6 +569,7 @@ function ciz() {
   tablo(kayitlar, gunler);
   konuTablosu(kayitlar);
   ilerleme(kayitlar);
+  yds();
   denemeler();
   document.getElementById("kitaplar").innerHTML = Object.entries(KITAPLAR).map(([k, v]) => `<b>${k}:</b> ${v}`).join(" &nbsp;·&nbsp; ");
 }
@@ -489,7 +608,7 @@ async function coz(parola) {
 }
 async function ac(parola, hatirla) {
   const d = await coz(parola); // yanlış parolada hata fırlatır
-  KAYITLAR = d.KAYITLAR || []; KITAPLAR = d.KITAPLAR || {}; KITAP_TESTLERI = d.KITAP_TESTLERI || {}; DENEMELER = d.DENEMELER || [];
+  KAYITLAR = d.KAYITLAR || []; KITAPLAR = d.KITAPLAR || {}; KITAP_TESTLERI = d.KITAP_TESTLERI || {}; YDS_DENEMELER = d.YDS_DENEMELER || []; DENEMELER = d.DENEMELER || [];
   if (hatirla) try { localStorage.setItem(PAROLA_KEY, parola); } catch {}
   document.getElementById("giris").remove();
   document.querySelector("main").hidden = false;
