@@ -8,17 +8,17 @@
 <style>
   :root {
     --bg: #f6f7f9; --card: #ffffff; --text: #1d2330; --muted: #6b7280; --line: #e3e6eb;
-    --dogru: #1f9d55; --yanlis: #d64545; --bos: #9aa3af; --net: #3b6fd8; --accent: #3b6fd8;
+    --dogru: #1f9d55; --yanlis: #d64545; --bos: #9aa3af; --net: #3b6fd8; --accent: #3b6fd8; --ders2: #c26a1b;
   }
   @media (prefers-color-scheme: dark) {
     :root:not([data-theme="light"]) {
       --bg: #12151b; --card: #1b2029; --text: #e7eaf0; --muted: #9aa3b2; --line: #2b313c;
-      --dogru: #3fbf75; --yanlis: #ef6b6b; --bos: #7b8494; --net: #6f97ee; --accent: #6f97ee;
+      --dogru: #3fbf75; --yanlis: #ef6b6b; --bos: #7b8494; --net: #6f97ee; --accent: #6f97ee; --ders2: #e8954f;
     }
   }
   :root[data-theme="dark"] {
     --bg: #12151b; --card: #1b2029; --text: #e7eaf0; --muted: #9aa3b2; --line: #2b313c;
-    --dogru: #3fbf75; --yanlis: #ef6b6b; --bos: #7b8494; --net: #6f97ee; --accent: #6f97ee;
+    --dogru: #3fbf75; --yanlis: #ef6b6b; --bos: #7b8494; --net: #6f97ee; --accent: #6f97ee; --ders2: #e8954f;
   }
   * { box-sizing: border-box; }
   [hidden] { display: none !important; }
@@ -134,6 +134,11 @@
   <div class="card">
     <h2>Günlük çözülen soru</h2>
     <div class="chart-box"><canvas id="cSoru"></canvas></div>
+  </div>
+
+  <div class="card">
+    <h2>Günlük çözülen test sayısı</h2>
+    <div class="chart-box"><canvas id="cTest"></canvas></div>
   </div>
 
   <div class="grid2">
@@ -560,12 +565,30 @@ document.querySelectorAll(".sekmeler button").forEach(b => b.onclick = () => sek
   if (location.hash === "#yds" || location.hash === "#ales") s = location.hash.slice(1);
   sekmeAc(s, false); })();
 
+function testGrafigi(kayitlar, gunler) {
+  const dersler = [...new Set(kayitlar.map(r => r.ders || "–"))];
+  const renk = ["--net", "--ders2", "--dogru", "--bos"];
+  const ort = gunler.length ? gunler.reduce((a, g) => a + g.test, 0) / gunler.length : 0;
+  grafikler.push(new Chart(document.getElementById("cTest"), {
+    data: { labels: gunler.map(g => trTarih(g.tarih)), datasets: [
+      ...dersler.map((d, i) => ({ type: "bar", label: d, stack: "s", backgroundColor: css(renk[i % renk.length]), maxBarThickness: 70,
+        data: gunler.map(g => kayitlar.filter(r => r.tarih === g.tarih && (r.ders || "–") === d).length) })),
+      { type: "line", label: `Ortalama (${fmt(ort, 1)})`, data: gunler.map(() => +ort.toFixed(2)), borderColor: css("--muted"),
+        borderDash: [5, 4], pointRadius: 0, borderWidth: 1.5 },
+    ]},
+    options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
+      plugins: { tooltip: { callbacks: { footer: it => { const t = it.filter(x => x.dataset.type === "bar").reduce((a, x) => a + x.parsed.y, 0); return `Toplam: ${t} test`; } } } },
+      scales: { x: { stacked: true, grid: { display: false } }, y: { stacked: true, beginAtZero: true, ticks: { precision: 0 } } } }
+  }));
+}
+
 function ciz() {
   geriSayim();
   const kayitlar = tumKayitlar();
   const gunler = gunlukTopla(kayitlar);
   istatistik(gunler);
   grafik(gunler);
+  testGrafigi(kayitlar, gunler);
   tablo(kayitlar, gunler);
   konuTablosu(kayitlar);
   ilerleme(kayitlar);
