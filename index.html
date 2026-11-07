@@ -262,6 +262,8 @@ const ALES = {
   EA:  { sabit: 45.408, say: 0.518, soz: 0.652 },
 };
 const SAYISAL_DERSLER = ["Matematik", "Geometri"];
+/* Hedef puanlar: grafikte kesikli çizgi, kartta kalan puan olarak görünür */
+const ALES_HEDEF = { SAY: 85 };
 const SOZEL_DERSLER = ["Türkçe", "Mantık"];
 
 /* Net hesabı: kaç yanlış bir doğruyu götürür (YKS/LGS için 4, KPSS için 4, 0 = ceza yok) */
@@ -409,14 +411,15 @@ function denemeler() {
     return Object.fromEntries(Object.entries(ALES).map(([t, k]) => [t, Math.min(100, k.sabit + k.say * sy + k.soz * sz)])); };
   const kart = (k, v, d = "") => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${d}</div>`;
   const son = liste[liste.length - 1], onceki = liste[liste.length - 2];
-  const fark = (a, b) => { const x = a - b; return `<div class="d ${x >= 0 ? "up" : "down"}">${x >= 0 ? "▲" : "▼"} ${fmt(Math.abs(x))} önceki denemeye göre</div>`; };
+  const fark = (a, b) => { const x = a - b; if (Math.abs(x) < 0.005) return `<div class="d">= önceki denemeyle aynı</div>`; return `<div class="d ${x > 0 ? "up" : "down"}">${x > 0 ? "▲" : "▼"} ${fmt(Math.abs(x))} önceki denemeye göre</div>`; };
   st.innerHTML = kart("Çözülen deneme", liste.length) +
     kart("Son deneme toplam net", fmt(net(toplam(son))), onceki ? fark(net(toplam(son)), net(toplam(onceki))) : "") +
     dersler.map(d => son.bolumler[d] ? kart(`Son ${d} neti`, fmt(net(son.bolumler[d])),
       onceki && onceki.bolumler[d] ? fark(net(son.bolumler[d]), net(onceki.bolumler[d])) : "") : "").join("") +
     kart("En iyi toplam net", fmt(Math.max(...liste.map(d => net(toplam(d)))))) +
-    Object.keys(ALES).map(t => kart(`Son ${t} puanı (tahmini)`, fmt(puanlar(son)[t]),
-      onceki ? fark(puanlar(son)[t], puanlar(onceki)[t]) : "")).join("");
+    Object.keys(ALES).map(t => { const p = puanlar(son)[t], h = ALES_HEDEF[t];
+      const hedef = h ? `<div class="d ${p >= h ? "up" : ""}">Hedef ${h} · ${p >= h ? "hedefe ulaşıldı ✓" : `${fmt(h - p)} puan kaldı`}</div>` : "";
+      return kart(`Son ${t} puanı (tahmini)`, fmt(p), (onceki ? fark(p, puanlar(onceki)[t]) : "") + hedef); }).join("");
 
   const renk = ["--net", "--dogru", "--yanlis", "--bos"];
   grafikler.push(new Chart(document.getElementById("cDeneme"), {
@@ -433,7 +436,9 @@ function denemeler() {
   grafikler.push(new Chart(document.getElementById("cPuan"), {
     type: "line",
     data: { labels: liste.map(d => `${d.ad} (${trTarih(d.tarih)})`), datasets: Object.keys(ALES).map(t => ({
-      label: t, data: liste.map(d => +puanlar(d)[t].toFixed(2)), borderColor: css(puanRenk[t]), backgroundColor: css(puanRenk[t]), pointRadius: 4, tension: .25 })) },
+      label: t, data: liste.map(d => +puanlar(d)[t].toFixed(2)), borderColor: css(puanRenk[t]), backgroundColor: css(puanRenk[t]), pointRadius: 4, tension: .25 }))
+      .concat(Object.entries(ALES_HEDEF).map(([t, h]) => ({ label: `${t} hedefi (${h})`, data: liste.map(() => h),
+        borderColor: css(puanRenk[t]), backgroundColor: "transparent", borderDash: [6, 5], borderWidth: 2, pointRadius: 0 }))) },
     options: { responsive: true, maintainAspectRatio: false, interaction: { mode: "index", intersect: false },
       scales: { y: { min: 40, max: 100 }, x: { grid: { display: false } } } }
   }));
@@ -501,7 +506,7 @@ function yds() {
   const liste = [...YDS_DENEMELER].sort((a, b) => a.tarih.localeCompare(b.tarih));
   const st = document.getElementById("ydsStats"), tablo = document.getElementById("ydsTablo");
   const kart = (k, v, d = "") => `<div class="stat"><div class="k">${k}</div><div class="v">${v}</div>${d}</div>`;
-  const fark = (a, b) => { const x = a - b; return `<div class="d ${x >= 0 ? "up" : "down"}">${x >= 0 ? "▲" : "▼"} ${fmt(Math.abs(x))} önceki denemeye göre</div>`; };
+  const fark = (a, b) => { const x = a - b; if (Math.abs(x) < 0.005) return `<div class="d">= önceki denemeyle aynı</div>`; return `<div class="d ${x > 0 ? "up" : "down"}">${x > 0 ? "▲" : "▼"} ${fmt(Math.abs(x))} önceki denemeye göre</div>`; };
   if (!liste.length) {
     st.innerHTML = kart("Çözülen deneme", 0) + kart("Son puan", "–") + kart("En iyi puan", "–") + kart("Ortalama puan", "–");
     tablo.innerHTML = `<tr><td class="empty">Henüz YDS denemesi yok. İlk denemeni çözünce sonuçlarını gönder, buraya ekleyelim.</td></tr>`;
